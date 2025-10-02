@@ -1,0 +1,2 @@
+fastmcp>=1.0.0
+dbus-python>=1.2.0  # For D-Bus integration (Linux only)

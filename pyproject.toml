@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kdeconnect-mcp-server"
+version = "0.1.0"
+description = "MCP Server for KDE Connect integration"
+authors = [
+    {name = "KDE Connect MCP", email = "dev@example.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "mcp>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=22.0.0",
+    "mypy>=1.0.0",
+]
+
+[project.scripts]
+kdeconnect-mcp-server = "kdeconnect_mcp_server.mcp_server:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["kdeconnect_mcp_server*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py38"]
+
+[tool.mypy]
+python_version = "3.8"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
