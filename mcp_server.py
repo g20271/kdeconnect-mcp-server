@@ -298,101 +298,6 @@ kdeconnect = KDEConnectDBus()
 mcp = FastMCP("KDE Connect MCP Server")
 
 
-# ========== Pydantic Models for Input Validation ==========
-
-class DeviceIdInput(BaseModel):
-    """Input model for operations requiring a device ID"""
-    device_id: str = Field(
-        ...,
-        description="The unique identifier of the KDE Connect device (use list_devices to find device IDs)"
-    )
-
-
-class MediaControlInput(BaseModel):
-    """Input model for media control operations"""
-    device_id: str = Field(
-        ...,
-        description="The unique identifier of the KDE Connect device"
-    )
-    action: Literal["Play", "Pause", "PlayPause", "Next", "Previous", "Stop"] = Field(
-        ...,
-        description="Media control action to perform"
-    )
-
-
-class NotificationInput(BaseModel):
-    """Input model for sending notifications"""
-    device_id: str = Field(
-        ...,
-        description="The unique identifier of the KDE Connect device"
-    )
-    message: str = Field(
-        ...,
-        description="The notification message to send",
-        min_length=1,
-        max_length=500
-    )
-
-
-class ShareUrlInput(BaseModel):
-    """Input model for sharing URLs"""
-    device_id: str = Field(
-        ...,
-        description="The unique identifier of the KDE Connect device"
-    )
-    url: str = Field(
-        ...,
-        description="The URL to share with the device",
-        pattern=r'^https?://.+'
-    )
-
-
-class ShareFileInput(BaseModel):
-    """Input model for sharing files"""
-    device_id: str = Field(
-        ...,
-        description="The unique identifier of the KDE Connect device"
-    )
-    file_path: str = Field(
-        ...,
-        description="The absolute path to the file to share (e.g., /home/user/document.pdf)"
-    )
-
-
-class SetMediaPlayerInput(BaseModel):
-    """Input model for setting media player"""
-    device_id: str = Field(
-        ...,
-        description="The unique identifier of the KDE Connect device"
-    )
-    player: str = Field(
-        ...,
-        description="The name of the media player to activate (e.g., 'YouTube', 'Spotify', 'VLC')"
-    )
-
-
-class ListReceivedFilesInput(BaseModel):
-    """Input model for listing received files"""
-    device_id: str = Field(
-        ...,
-        description="The unique identifier of the KDE Connect device"
-    )
-    limit: int = Field(
-        default=10,
-        description="Maximum number of files to return",
-        ge=1,
-        le=100
-    )
-
-
-class OpenFileInput(BaseModel):
-    """Input model for opening files"""
-    file_path: str = Field(
-        ...,
-        description="The absolute path to the file to open"
-    )
-
-
 # ========== Tool Definitions ==========
 
 @mcp.tool()
@@ -424,23 +329,23 @@ def list_devices() -> Dict[str, Any]:
 
 
 @mcp.tool()
-def get_battery(input: DeviceIdInput) -> Dict[str, Any]:
+def get_battery(device_id: str) -> Dict[str, Any]:
     """
     Get battery status from a device
 
     Retrieves the current battery level and charging status from the specified device.
 
     Args:
-        input: Device identification
+        device_id: The unique identifier of the KDE Connect device (use list_devices to find device IDs)
 
     Returns:
         Battery information including charge percentage and charging status
     """
-    return kdeconnect.get_battery(input.device_id)
+    return kdeconnect.get_battery(device_id)
 
 
 @mcp.tool()
-def get_now_playing(input: DeviceIdInput) -> Dict[str, Any]:
+def get_now_playing(device_id: str) -> Dict[str, Any]:
     """
     Get currently playing media information
 
@@ -448,33 +353,37 @@ def get_now_playing(input: DeviceIdInput) -> Dict[str, Any]:
     including track title, artist, album, playback position, and available media players.
 
     Args:
-        input: Device identification
+        device_id: The unique identifier of the KDE Connect device (use list_devices to find device IDs)
 
     Returns:
         Media information including title, artist, album, playback status, and position
     """
-    return kdeconnect.get_now_playing(input.device_id)
+    return kdeconnect.get_now_playing(device_id)
 
 
 @mcp.tool()
-def media_control(input: MediaControlInput) -> Dict[str, str]:
+def media_control(
+    device_id: str,
+    action: Literal["Play", "Pause", "PlayPause", "Next", "Previous", "Stop"]
+) -> Dict[str, str]:
     """
     Control media playback on a device
 
     Send media control commands to the device to control playback of music, videos, or other media.
 
     Args:
-        input: Device ID and media control action
+        device_id: The unique identifier of the KDE Connect device
+        action: Media control action to perform
 
     Returns:
         Status confirmation with the action that was performed
     """
-    kdeconnect.media_control(input.device_id, input.action)
-    return {"status": "success", "action": input.action}
+    kdeconnect.media_control(device_id, action)
+    return {"status": "success", "action": action}
 
 
 @mcp.tool()
-def send_notification(input: NotificationInput) -> Dict[str, str]:
+def send_notification(device_id: str, message: str) -> Dict[str, str]:
     """
     Send a notification to a device
 
@@ -482,34 +391,36 @@ def send_notification(input: NotificationInput) -> Dict[str, str]:
     alerts, or sending quick messages.
 
     Args:
-        input: Device ID and notification message
+        device_id: The unique identifier of the KDE Connect device
+        message: The notification message to send (1-500 characters)
 
     Returns:
         Status confirmation
     """
-    kdeconnect.send_ping(input.device_id, input.message)
-    return {"status": "sent", "message": input.message}
+    kdeconnect.send_ping(device_id, message)
+    return {"status": "sent", "message": message}
 
 
 @mcp.tool()
-def share_url(input: ShareUrlInput) -> Dict[str, str]:
+def share_url(device_id: str, url: str) -> Dict[str, str]:
     """
     Share a URL to a device
 
     Send a URL to the device, which will typically open in the device's default browser.
 
     Args:
-        input: Device ID and URL to share
+        device_id: The unique identifier of the KDE Connect device
+        url: The URL to share with the device (must start with http:// or https://)
 
     Returns:
         Status confirmation with the shared URL
     """
-    kdeconnect.share_url(input.device_id, input.url)
-    return {"status": "shared", "url": input.url}
+    kdeconnect.share_url(device_id, url)
+    return {"status": "shared", "url": url}
 
 
 @mcp.tool()
-def share_file(input: ShareFileInput) -> Dict[str, str]:
+def share_file(device_id: str, file_path: str) -> Dict[str, str]:
     """
     Share a file to a device
 
@@ -517,17 +428,18 @@ def share_file(input: ShareFileInput) -> Dict[str, str]:
     saved to the device's configured download location.
 
     Args:
-        input: Device ID and file path
+        device_id: The unique identifier of the KDE Connect device
+        file_path: The absolute path to the file to share (e.g., /home/user/document.pdf)
 
     Returns:
         Status confirmation with the shared file path
     """
-    kdeconnect.share_file(input.device_id, input.file_path)
-    return {"status": "shared", "file": input.file_path}
+    kdeconnect.share_file(device_id, file_path)
+    return {"status": "shared", "file": file_path}
 
 
 @mcp.tool()
-def ring_device(input: DeviceIdInput) -> Dict[str, str]:
+def ring_device(device_id: str) -> Dict[str, str]:
     """
     Make a device ring to help locate it
 
@@ -535,17 +447,17 @@ def ring_device(input: DeviceIdInput) -> Dict[str, str]:
     Useful for finding a lost phone or device.
 
     Args:
-        input: Device identification
+        device_id: The unique identifier of the KDE Connect device (use list_devices to find device IDs)
 
     Returns:
         Status confirmation
     """
-    kdeconnect.ring_device(input.device_id)
+    kdeconnect.ring_device(device_id)
     return {"status": "ringing"}
 
 
 @mcp.tool()
-def get_media_players(input: DeviceIdInput) -> Dict[str, Any]:
+def get_media_players(device_id: str) -> Dict[str, Any]:
     """
     Get list of available media players on a device
 
@@ -553,13 +465,13 @@ def get_media_players(input: DeviceIdInput) -> Dict[str, Any]:
     remote control through KDE Connect.
 
     Args:
-        input: Device identification
+        device_id: The unique identifier of the KDE Connect device (use list_devices to find device IDs)
 
     Returns:
         List of available players, current active player, and count
     """
-    players = kdeconnect.get_media_players(input.device_id)
-    current = kdeconnect.get_current_player(input.device_id)
+    players = kdeconnect.get_media_players(device_id)
+    current = kdeconnect.get_current_player(device_id)
     return {
         "available_players": players,
         "current_player": current,
@@ -568,7 +480,7 @@ def get_media_players(input: DeviceIdInput) -> Dict[str, Any]:
 
 
 @mcp.tool()
-def set_media_player(input: SetMediaPlayerInput) -> Dict[str, str]:
+def set_media_player(device_id: str, player: str) -> Dict[str, str]:
     """
     Set the active media player on a device
 
@@ -576,20 +488,21 @@ def set_media_player(input: SetMediaPlayerInput) -> Dict[str, str]:
     Must be called before using media_control if multiple players are active.
 
     Args:
-        input: Device ID and player name
+        device_id: The unique identifier of the KDE Connect device
+        player: The name of the media player to activate (e.g., 'YouTube', 'Spotify', 'VLC')
 
     Returns:
         Status confirmation with the selected player
     """
-    kdeconnect.set_media_player(input.device_id, input.player)
+    kdeconnect.set_media_player(device_id, player)
     return {
         "status": "player_set",
-        "player": input.player
+        "player": player
     }
 
 
 @mcp.tool()
-def detect_active_player(input: DeviceIdInput) -> Dict[str, Any]:
+def detect_active_player(device_id: str) -> Dict[str, Any]:
     """
     Automatically detect which media player is currently playing
 
@@ -597,16 +510,16 @@ def detect_active_player(input: DeviceIdInput) -> Dict[str, Any]:
     Returns detailed information about each player's state.
 
     Args:
-        input: Device identification
+        device_id: The unique identifier of the KDE Connect device (use list_devices to find device IDs)
 
     Returns:
         List of active players with their playback status and current media information
     """
-    return kdeconnect.detect_active_player(input.device_id)
+    return kdeconnect.detect_active_player(device_id)
 
 
 @mcp.tool()
-def get_notifications(input: DeviceIdInput) -> Dict[str, Any]:
+def get_notifications(device_id: str) -> Dict[str, Any]:
     """
     Get all active notifications from a device
 
@@ -614,12 +527,12 @@ def get_notifications(input: DeviceIdInput) -> Dict[str, Any]:
     title, text content, and other metadata.
 
     Args:
-        input: Device identification
+        device_id: The unique identifier of the KDE Connect device (use list_devices to find device IDs)
 
     Returns:
         List of notifications with full details and count
     """
-    notifications = kdeconnect.get_notifications(input.device_id)
+    notifications = kdeconnect.get_notifications(device_id)
     return {
         "notifications": notifications,
         "count": len(notifications)
@@ -627,7 +540,7 @@ def get_notifications(input: DeviceIdInput) -> Dict[str, Any]:
 
 
 @mcp.tool()
-def list_received_files(input: ListReceivedFilesInput) -> Dict[str, Any]:
+def list_received_files(device_id: str, limit: int = 10) -> Dict[str, Any]:
     """
     List recently received files from a device
 
@@ -635,13 +548,14 @@ def list_received_files(input: ListReceivedFilesInput) -> Dict[str, Any]:
     sorted by most recent first.
 
     Args:
-        input: Device ID and optional limit
+        device_id: The unique identifier of the KDE Connect device
+        limit: Maximum number of files to return (1-100, default: 10)
 
     Returns:
         List of files with paths, sizes, modification times, and download directory
     """
-    files = kdeconnect.list_received_files(input.device_id, input.limit)
-    download_dir = kdeconnect.get_download_directory(input.device_id)
+    files = kdeconnect.list_received_files(device_id, limit)
+    download_dir = kdeconnect.get_download_directory(device_id)
     return {
         "files": files,
         "count": len(files),
@@ -650,7 +564,7 @@ def list_received_files(input: ListReceivedFilesInput) -> Dict[str, Any]:
 
 
 @mcp.tool()
-def open_file(input: OpenFileInput) -> Dict[str, str]:
+def open_file(file_path: str) -> Dict[str, str]:
     """
     Open a file with the default application
 
@@ -658,16 +572,89 @@ def open_file(input: OpenFileInput) -> Dict[str, str]:
     Typically used to open files received from devices.
 
     Args:
-        input: Absolute file path
+        file_path: The absolute path to the file to open
 
     Returns:
         Status confirmation with the opened file path
     """
-    kdeconnect.open_received_file(input.file_path)
+    kdeconnect.open_received_file(file_path)
     return {
         "status": "opened",
-        "file_path": input.file_path
+        "file_path": file_path
     }
+
+
+# ========== Resources for Device Information ==========
+
+@mcp.resource("kdeconnect://devices", name="Device List", description="List of all available KDE Connect devices")
+def devices_resource() -> str:
+    """Provides a list of all available devices in JSON format."""
+    import json
+    devices = kdeconnect.list_devices()
+    device_info = []
+    for device_id in devices:
+        try:
+            info = kdeconnect.get_device_info(device_id)
+            device_info.append(info)
+        except Exception as e:
+            device_info.append({"id": device_id, "error": str(e)})
+
+    return json.dumps({
+        "devices": device_info,
+        "count": len(device_info)
+    }, indent=2)
+
+
+@mcp.resource(
+    "kdeconnect://{device_id}/now-playing",
+    name="Now Playing Info",
+    description="Currently playing media information for a specific device"
+)
+def now_playing_resource(device_id: str) -> str:
+    """Provides now playing information for a device."""
+    import json
+    result = kdeconnect.get_now_playing(device_id)
+    return json.dumps(result, indent=2)
+
+
+# ========== Prompts for Natural Language Interaction ==========
+
+@mcp.prompt(
+    name="play_music",
+    description="Natural language prompt to control music playback on a specific device",
+    tags={"media", "control"}
+)
+def play_music_prompt(
+    device_id: str = Field(description="Device ID to control"),
+    action: str = Field(description="Action to perform: play, pause, next, previous, stop")
+) -> str:
+    """Generate a prompt for controlling music playback."""
+    return f"Control music playback on device {device_id}: {action}"
+
+
+@mcp.prompt(
+    name="check_music",
+    description="Natural language prompt to check what's currently playing on a specific device",
+    tags={"media", "query"}
+)
+def check_music_prompt(
+    device_id: str = Field(description="Device ID to check")
+) -> str:
+    """Generate a prompt for checking currently playing music."""
+    return f"What music is currently playing on device {device_id}?"
+
+
+@mcp.prompt(
+    name="send_message",
+    description="Natural language prompt to send a notification to a specific device",
+    tags={"notification", "communication"}
+)
+def send_message_prompt(
+    device_id: str = Field(description="Device ID to send notification to"),
+    message: str = Field(description="Message to send")
+) -> str:
+    """Generate a prompt for sending a notification."""
+    return f"Send notification to device {device_id}: {message}"
 
 
 if __name__ == "__main__":
